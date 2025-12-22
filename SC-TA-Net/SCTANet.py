@@ -144,17 +144,25 @@ class BAF(nn.Module):
         concat = torch.cat(bands, dim=1)
         selector_input = concat.reshape(B, -1)
         band_weights = self.band_selector(selector_input)
-        selected_index = torch.argmax(band_weights, dim=-1)
-
+        predictions = F.softmax(x/0.01, dim=1)
+        #selected_index = torch.argmax(band_weights, dim=-1)
         queries = []
-        keys = []
         for b in range(B):
-            idx = selected_index[b]
-            q = bands[idx][b].unsqueeze(0)
-            kv = [bands[i][b] for i in range(self.num_bands)]
-            kv = torch.cat(kv, dim=0).unsqueeze(0)
+            weighted_bands = torch.stack([bands[i][b] * predictions[b][i] for i in range(self.num_bands)], dim=0)
+            kv = [bands[i][b] for i in range(self.num_bands)]  # 将加权后的频段堆叠为 [1, 5, C]
+            q = weighted_bands.unsqueeze(0)  # 选择权重最大的频段作为 query
             attn_output, _ = self.cross_attn(q, kv, kv)
             queries.append(attn_output)
+        
+        # queries = []
+        # keys = []
+        # for b in range(B):
+        #     idx = selected_index[b]
+        #     q = bands[idx][b].unsqueeze(0)
+        #     kv = [bands[i][b] for i in range(self.num_bands)]
+        #     kv = torch.cat(kv, dim=0).unsqueeze(0)
+        #     attn_output, _ = self.cross_attn(q, kv, kv)
+        #     queries.append(attn_output)
         return torch.cat(queries, dim=0)
 
 
@@ -214,5 +222,6 @@ class SCTANet(nn.Module):
         x_cls = self.classifier(x_fused)  # -> [B, num_class]
 
         return x_cls
+
 
 
