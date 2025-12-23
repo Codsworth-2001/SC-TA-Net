@@ -134,7 +134,7 @@ class BAF(nn.Module):
             nn.Linear(num_bands * k * d_model, 512),
             nn.ReLU(),
             nn.Linear(512, num_bands),
-            nn.Softmax(dim=-1)
+            # nn.Softmax(dim=-1)
         )
 
         self.cross_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=4, batch_first=True)
@@ -144,7 +144,7 @@ class BAF(nn.Module):
         concat = torch.cat(bands, dim=1)
         selector_input = concat.reshape(B, -1)
         band_weights = self.band_selector(selector_input)
-        predictions = F.softmax(x/0.01, dim=1)
+        predictions = F.softmax(band_weights/0.01, dim=1)
         #selected_index = torch.argmax(band_weights, dim=-1)
         queries = []
         for b in range(B):
@@ -222,6 +222,7 @@ class SCTANet(nn.Module):
         x_cls = self.classifier(x_fused)  # -> [B, num_class]
 
         return x_cls
+
 
 
 
